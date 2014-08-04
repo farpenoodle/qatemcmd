@@ -5,8 +5,7 @@
 #include <QTextStream>
 #include <QCoreApplication>
 #include <QHostAddress>
-#include <QImage>
-#include <QFileInfo>
+#include <QTimer>
 
 QAtemController::QAtemController(QObject *parent) :
     QObject(parent)
@@ -16,10 +15,6 @@ QAtemController::QAtemController(QObject *parent) :
             this, SLOT(handleError(QString)));
     connect(m_connection, SIGNAL(connected()),
             this, SLOT(handleConnect()));
-/*    connect(m_connection, SIGNAL(mediaLockStateChanged(quint8,bool)),
-            this, SLOT(handleMediaLockState(quint8,bool)));
-    connect(m_connection, SIGNAL(dataTransferFinished(quint16)),
-            this, SLOT(handleDataTransferFinished(quint16)));*/
 }
 
 void QAtemController::connectAtem(const QString &address, const QString &command, quint8 input) {
@@ -38,28 +33,42 @@ void QAtemController::connectAtem(const QString &address, const QString &command
 }
 
 void QAtemController::switchInput(quint8 input) {
-    QTextStream out(stderr);
-    out << "Transitioning to input " << QString::number(input) << endl << endl;
     m_connection->changePreviewInput(input);
     m_connection->doAuto();
     QCoreApplication::exit(-1);
 }
 
 void QAtemController::switchInputNoTrans(quint8 input) {
-    QTextStream out(stderr);
-    out << "Changing to input " << QString::number(input) << endl << endl;
     m_connection->changeProgramInput(input);
     QCoreApplication::exit(-1);
 }
 
 void QAtemController::handleConnect() {
+    QTextStream out(stderr);
     if (m_command == "switch") {
-        switchInput(m_input);
+        out << "Transitioning to input " << QString::number(m_input) << " with " << QString::number(m_delay) << "ms delay" << endl << endl;
+        if (m_delay > 0) {
+            QTimer::singleShot(m_delay, this, SLOT(switchInputSlot()));
+        } else {
+            switchInput(m_input);
+        }
     } else if (m_command == "switchNoTrans") {
-        switchInputNoTrans(m_input);
+        out << "Changing to input " << QString::number(m_input) << " with " << QString::number(m_delay) << "ms delay" << endl << endl;
+        if (m_delay > 0) {
+            QTimer::singleShot(m_delay, this, SLOT(switchInputSlot()));
+        } else {
+            switchInputNoTrans(m_input);
+        }
     } else {
         handleError("Not a valid command");
     }
+}
+
+void QAtemController::switchInputSlot() {
+    switchInput(m_input);
+}
+void QAtemController::switchInputNoTransSlot() {
+    switchInputNoTrans(m_input);
 }
 
 void QAtemController::handleError(const QString &errorString)

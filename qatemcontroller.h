@@ -18,14 +18,19 @@ public:
       void switchInput(quint8 input);
       void switchInputNoTrans(quint8 input);
 
+      void setDelay(int delay) { m_delay = delay; }
+
 protected slots:
     void handleError(const QString &errorString);
     void handleConnect();
+    void switchInputSlot();
+    void switchInputNoTransSlot();
 
 private:
     QAtemConnection *m_connection;
     QString m_command;
     quint8 m_input;
+    int m_delay;
 };
 
 #endif // QATEMCONTROLLER_H
